@@ -1,5 +1,4 @@
-// src/pages/Home.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -8,12 +7,12 @@ import { useAuth } from '../context/AuthConntext';
 
 const UserInfo = () => {
   const { user } = useAuth();
-  const navigate=useNavigate();
-  const cook=Cookies.get('token');
-  if (cook===undefined){
-    return navigate("/home");
+  const navigate = useNavigate();
+  const cook = Cookies.get('token');
+  if (cook === undefined) {
+    navigate("/home");
+    return null;
   }
-  
 
   if (!user) return null;
 
@@ -31,17 +30,12 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchFriends();
-  }, []);
-
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await axios.get('https://nexorand-backend.onrender.com/api/user/v1/get-users');
       if (response.data.success) {
-        // Get 10 random users excluding the current user
         const allUsers = response.data.data.filter(u => u._id !== user._id);
         const randomFriends = allUsers.sort(() => 0.5 - Math.random()).slice(0, 10);
         setFriends(randomFriends);
@@ -54,7 +48,11 @@ const Home = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user._id]);
+
+  useEffect(() => {
+    fetchFriends();
+  }, [fetchFriends]);
 
   const claimPoints = async (username) => {
     setIsLoading(true);
@@ -62,9 +60,9 @@ const Home = () => {
     try {
       const response = await axios.patch('https://nexorand-backend.onrender.com/api/user/v1/claim-points', { username });
       if (response.data.success) {
-        setFriends(friends.map(friend => 
-          friend.username === username 
-            ? { ...friend, Points: response.data.data.Points } 
+        setFriends(friends.map(friend =>
+          friend.username === username
+            ? { ...friend, Points: response.data.data.Points }
             : friend
         ));
       } else {
